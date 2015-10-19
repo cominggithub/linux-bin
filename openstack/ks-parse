@@ -1,0 +1,27 @@
+#!/usr/bin/env python
+"""Parse JSON output from Keystone /tokens
+and extract the token and URLs
+Takes care to quote properly so its output can be eval'd by the shell."""
+import sys
+import json
+import re
+
+def shellname(s):
+    "keep only those characters that are valid in a shell variable name"
+    return re.sub('[^A-Za-z0-9_]*','', s)
+
+def shellquote(s):
+    "make a single shell argument from s"
+    return "'" + s.replace("'", "'\\''") + "'"
+
+def shellvar(name, value):
+    print("export %s=%s" % (shellname(name), shellquote(value)))
+
+tokens = json.load(sys.stdin)
+
+shellvar("OS_TOKEN", tokens['access']['token']['id'])
+
+for service in tokens['access']['serviceCatalog']:
+    stype = service['type'].replace("-", "_").upper()
+    url = service['endpoints'][0]['publicURL']
+    shellvar("OS_%s_URL" % stype, url)
